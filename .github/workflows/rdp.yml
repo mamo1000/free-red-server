@@ -1,37 +1,22 @@
-name: RDP Connection
+run: |
+  # تحميل وفك ضغط ngrok
+  Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+  Expand-Archive ngrok.zip -DestinationPath ngrok
 
-# هذا يسمح لك بتشغيل الـ workflow يدويًا من صفحة Actions في GitHub
-on: [workflow_dispatch]
+  # تحديد المسار الصحيح لـ ngrok.exe
+  $ngrokPath = Join-Path (Get-Location).Path "ngrok\ngrok.exe"
 
-jobs:
-  build:
-    runs-on: windows-latest
-    steps:
-      - name: Setup RDP and Ngrok Tunnel
-        # استخدم GitHub Secrets لوضع التوكن الخاص بك. هذا أكثر أمانًا.
-        # اذهب إلى إعدادات الريبو > Secrets and variables > Actions وأنشئ سيكريت جديد باسم NGROK_AUTH_TOKEN
-        env:
-          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-        run: |
-          # تحميل وفك ضغط ngrok
-          Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-          Expand-Archive ngrok.zip
-          
-          # --== الحل النهائي هنا ==--
-          # الحصول على المسار الكامل للمجلد الحالي وتحديد مسار ngrok.exe بشكل مطلق
-          $ngrokPath = Join-Path (Get-Location).Path "ngrok.exe"
+  # مصادقة ngrok
+  & $ngrokPath authtoken $env:NGROK_AUTH_TOKEN
 
-          # مصادقة ngrok باستخدام المسار الكامل
-          & $ngrokPath authtoken $env:NGROK_AUTH_TOKEN
-          
-          # إنشاء مستخدم جديد وإضافته لمجموعة المديرين
-          net user kamel123 MyStrong123 /add
-          net localgroup "Remote Desktop Users" kamel123 /add
-          net localgroup administrators kamel123 /add
-          
-          # تفعيل Remote Desktop وفتحه في جدار الحماية
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          
-          # تشغيل نفق ngrok باستخدام المسار الكامل
-          & $ngrokPath tcp 3389
+  # إنشاء مستخدم جديد وإضافته للمجموعات
+  net user kamel123 MyStrong123 /add
+  net localgroup "Remote Desktop Users" kamel123 /add
+  net localgroup administrators kamel123 /add
+
+  # تفعيل RDP وفتح البورت
+  Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0
+  Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+  # تشغيل نفق ngrok
+  & $ngrokPath tcp 3389
