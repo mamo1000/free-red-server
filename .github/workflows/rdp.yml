@@ -1,22 +1,37 @@
+name: RDP Connection
 
-  # تحميل وفك ضغط ngrok
-  Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-  Expand-Archive ngrok.zip -DestinationPath ngrok
+on: [workflow_dispatch]
 
-  # تحديد المسار الصحيح لـ ngrok.exe
-  $ngrokPath = Join-Path (Get-Location).Path "ngrok\ngrok.exe"
+jobs:
+  build:
+    runs-on: windows-latest
 
-  # مصادقة ngrok
-  & $ngrokPath authtoken $env:NGROK_AUTH_TOKEN
+    steps:
+      - name: Setup RDP and Ngrok Tunnel
+        env:
+          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+        run: |
+          # تحميل ngrok وفك ضغطه في مجلد ngrok
+          Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+          Expand-Archive ngrok.zip -DestinationPath ngrok
 
-  # إنشاء مستخدم جديد وإضافته للمجموعات
-  net user kamel123 MyStrong123 /add
-  net localgroup "Remote Desktop Users" kamel123 /add
-  net localgroup administrators kamel123 /add
+          # تحديد مسار ngrok.exe
+          $ngrokPath = Join-Path (Get-Location).Path "ngrok\ngrok.exe"
 
-  # تفعيل RDP وفتح البورت
-  Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0
-  Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          # عرض ملفات التحقق من وجود ngrok.exe
+          Get-ChildItem -Recurse | Where-Object Name -like "ngrok.exe"
 
-  # تشغيل نفق ngrok
-  & $ngrokPath tcp 3389
+          # تسجيل التوكن
+          & $ngrokPath authtoken $env:NGROK_AUTH_TOKEN
+
+          # إنشاء مستخدم جديد
+          net user kamel123 MyStrong123 /add
+          net localgroup "Remote Desktop Users" kamel123 /add
+          net localgroup administrators kamel123 /add
+
+          # تفعيل RDP وفتح البورت
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+          # تشغيل ngrok على البورت 3389
+          & $ngrokPath tcp 3389
