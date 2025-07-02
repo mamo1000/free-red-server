@@ -17,9 +17,12 @@ jobs:
           Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
           Expand-Archive ngrok.zip
           
-          # مصادقة ngrok باستخدام التوكن من الـ Secrets
-          # نستخدم المسار المباشر وعامل الاستدعاء (&) لضمان التشغيل
-          & .\ngrok.exe authtoken $env:NGROK_AUTH_TOKEN
+          # --== الحل النهائي هنا ==--
+          # الحصول على المسار الكامل للمجلد الحالي وتحديد مسار ngrok.exe بشكل مطلق
+          $ngrokPath = Join-Path (Get-Location).Path "ngrok.exe"
+
+          # مصادقة ngrok باستخدام المسار الكامل
+          & $ngrokPath authtoken $env:NGROK_AUTH_TOKEN
           
           # إنشاء مستخدم جديد وإضافته لمجموعة المديرين
           net user kamel123 MyStrong123 /add
@@ -30,6 +33,5 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           
-          # تشغيل نفق ngrok. هذا هو آخر أمر وسيبقي الـ job شغالاً
-          # الناتج سيظهر لك عنوان الـ RDP والـ port
-          & .\ngrok.exe tcp 3389
+          # تشغيل نفق ngrok باستخدام المسار الكامل
+          & $ngrokPath tcp 3389
