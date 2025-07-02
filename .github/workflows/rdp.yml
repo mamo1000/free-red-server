@@ -1,21 +1,38 @@
-name: RDP
+name: RDP Connection
 
+# هذا يسمح لك بتشغيل الـ workflow يدويًا من صفحة Actions في GitHub
 on: [workflow_dispatch]
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: Download ngrok
+      - name: Setup RDP and Ngrok Tunnel
+        # استخدم GitHub Secrets لوضع التوكن الخاص بك. هذا أكثر أمانًا.
+        # اذهب إلى إعدادات الريبو > Secrets and variables > Actions وأنشئ سيكريت جديد باسم NGROK_AUTH_TOKEN
+        env:
+          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
+          # تحميل وفك ضغط ngrok
           Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
           Expand-Archive ngrok.zip
-          ./ngrok.exe authtoken 2gpuKv9cjCiC2eKhW4AM2rFtJ43_3wNv6qQheMjLDKBato2ss
-
-      - name: Enable RDP
-        run: |
+          
+          # --== الحل هنا ==--
+          # إضافة المجلد الحالي إلى الـ PATH لضمان إيجاد ngrok.exe
+          $env:PATH = ".;" + $env:PATH
+          
+          # مصادقة ngrok باستخدام التوكن من الـ Secrets
+          ngrok authtoken $env:NGROK_AUTH_TOKEN
+          
+          # إنشاء مستخدم جديد وإضافته لمجموعة المديرين
           net user kamel123 MyStrong123 /add
+          net localgroup "Remote Desktop Users" kamel123 /add
           net localgroup administrators kamel123 /add
+          
+          # تفعيل Remote Desktop وفتحه في جدار الحماية
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          ./ngrok.exe tcp 3389
+          
+          # تشغيل نفق ngrok. هذا هو آخر أمر وسيبقي الـ job شغالاً
+          # الناتج سيظهر لك عنوان الـ RDP والـ port
+          ngrok tcp 3389
