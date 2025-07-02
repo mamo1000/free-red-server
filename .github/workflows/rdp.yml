@@ -17,12 +17,9 @@ jobs:
           Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
           Expand-Archive ngrok.zip
           
-          # --== الحل هنا ==--
-          # إضافة المجلد الحالي إلى الـ PATH لضمان إيجاد ngrok.exe
-          $env:PATH = ".;" + $env:PATH
-          
           # مصادقة ngrok باستخدام التوكن من الـ Secrets
-          ngrok authtoken $env:NGROK_AUTH_TOKEN
+          # نستخدم المسار المباشر وعامل الاستدعاء (&) لضمان التشغيل
+          & .\ngrok.exe authtoken $env:NGROK_AUTH_TOKEN
           
           # إنشاء مستخدم جديد وإضافته لمجموعة المديرين
           net user kamel123 MyStrong123 /add
@@ -35,4 +32,4 @@ jobs:
           
           # تشغيل نفق ngrok. هذا هو آخر أمر وسيبقي الـ job شغالاً
           # الناتج سيظهر لك عنوان الـ RDP والـ port
-          ngrok tcp 3389
+          & .\ngrok.exe tcp 3389
